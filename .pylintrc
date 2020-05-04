@@ -5,7 +5,7 @@
 
 # Python code to execute, usually for sys.path manipulation such as
 # pygtk.require().
-init-hook='import sys; sys.path.append("/workspace/flask-rest-hello")'
+init-hook='import sys; sys.path.append("/workspace/final-project-back-end")'
 
 # Profiled execution.
 profile=no

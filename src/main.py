@@ -53,20 +53,25 @@ def login():
         return jsonify({"msg": "Missing JSON in request"}), 400
 
     params = request.get_json()
-    username = params.get('username', None)
+    email = params.get('email', None)
     password = params.get('password', None)
 
-    if not username:
-        return jsonify({"msg": "Missing username parameter"}), 400
+    if not email:
+        return jsonify({"msg": "Missing email parameter"}), 400
     if not password:
         return jsonify({"msg": "Missing password parameter"}), 400
 
-    if username != 'test' or password != 'test':
-        return jsonify({"msg": "Bad username or password"}), 401
-
-    # Identity can be any data that is json serializable
-    ret = {'jwt': create_jwt(identity=username)}
-    return jsonify(ret), 200
+    user_query = Users.query.filter_by(email=email).first()
+    
+    if user_query is None:
+        return jsonify({"msg": "User not exist, go signUP"}), 404
+    else:
+        if email != user_query.email or password != user_query.password:
+            return jsonify({"msg": "Bad username or password"}), 401
+        else:
+            # Identity can be any data that is json serializable
+            ret = {'jwt': create_jwt(identity=email)}
+            return jsonify(ret), 200
 
 # Provide a method to create access tokens. The create_jwt()
 # function is used to actually generate the token
@@ -86,6 +91,14 @@ def signup():
         return jsonify({"msg": "Missing email parameter"}), 400
     if not password:
         return jsonify({"msg": "Missing password parameter"}), 400
+
+    email_query = Users.query.filter_by(email=email).first()
+    if email_query is not None:
+        return jsonify({"msg": "Email already exist"}), 401
+    
+    name_query = Users.query.filter_by(username=username).first()
+    if name_query is not None:
+        return jsonify({"msg": "User name already exist"}), 401
 
     user = Users(username=username, email=email, password=password)
     db.session.add(user)
