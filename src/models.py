@@ -7,6 +7,8 @@ class Users(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(120), nullable=False)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'))
+
 
     def __repr__(self):
         return '<Users %r>' % self.username
@@ -15,12 +17,14 @@ class Users(db.Model):
         return {
             "username": self.username,
             "email": self.email,
-            "password": self.password
+            "password": self.password,
+            "role_id": self.role_id
         }
 
 class Roles(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     rolename = db.Column(db.String(80), unique=True, nullable=False)
+    users = db.relationship('Users', backref='rolename', lazy='dynamic')
 
     def __repr__(self):
         return '<Roles %r>' % self.rolename

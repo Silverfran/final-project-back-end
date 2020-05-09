@@ -12,6 +12,7 @@ from flask_jwt_simple import (
     JWTManager, jwt_required, create_jwt, get_jwt_identity
 )
 from models import Users
+from models import Packages
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -31,19 +32,9 @@ def handle_invalid_usage(error):
 def sitemap():
     return generate_sitemap(app)
 
-@app.route('/hello', methods=['POST', 'GET'])
-def handle_hello():
-
-    response_body = {
-        "hello": "world"
-    }
-
-    return jsonify(response_body), 200
-
 # Setup the Flask-JWT-Simple extension
 app.config['JWT_SECRET_KEY'] = 'super-secret'  # Change this!
 jwt = JWTManager(app)
-
 
 # Provide a method to create access tokens. The create_jwt()
 # function is used to actually generate the token
@@ -70,7 +61,7 @@ def login():
             return jsonify({"msg": "Bad username or password"}), 401
         else:
             # Identity can be any data that is json serializable
-            ret = {'jwt': create_jwt(identity=email)}
+            ret = {'jwt': create_jwt(identity=email), 'lvl': user_query.role_id}
             return jsonify(ret), 200
 
 # Provide a method to create access tokens. The create_jwt()
@@ -100,12 +91,12 @@ def signup():
     if name_query is not None:
         return jsonify({"msg": "User name already exist"}), 401
 
-    user = Users(username=username, email=email, password=password)
+    user = Users(username=username, email=email, password=password, role_id=1)
     db.session.add(user)
     db.session.commit()
 
     # Identity can be any data that is json serializable
-    ret = {'jwt': create_jwt(identity=username)}
+    ret = {'jwt': create_jwt(identity=username), 'lvl': 3}
     return jsonify(ret), 200
 
 
@@ -114,9 +105,39 @@ def signup():
 @app.route('/protected', methods=['GET'])
 @jwt_required
 def protected():
-    # Access the identity of the current user with get_jwt_identity
-    return jsonify({'hello_from': get_jwt_identity()}), 200
+    # Access the identity of the current user with get_jwt_identity()
+    query_all = Packages.query.all()
+    all_Packages = list(map(lambda x: x.serialize(), query_all))
+    return jsonify(all_Packages), 200
 
+@app.route('/userProtected', methods=['GET'])
+@jwt_required
+def userProtected():
+    # Access the identity of the current user with get_jwt_identity()
+    query_all = Users.query.all()
+    all_Users = list(map(lambda x: x.serialize(), query_all))
+    return jsonify(all_Users), 200
+
+@app.route('/updateUserName', methods=['PUT'])
+@jwt_required
+def updateUserName():
+    # Access the identity of the current user with get_jwt_identity()
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    params = request.get_json()
+    oldUsername = params.get('olduser', None)
+    newUsername = params.get('newuser', None)
+    if not oldUsername:
+        return jsonify({"msg": "Missing olduser parameter"}), 400
+    if not newUsername:
+        return jsonify({"msg": "Missing newuser parameter"}), 400
+    
+    name_query = Users.query.filter_by(username=oldUsername).first()    
+    name_query.username = newUsername
+    db.session.commit()
+
+    return jsonify({"msg": "User name updated"}), 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
