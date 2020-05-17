@@ -1,18 +1,17 @@
 """
 This module takes care of starting the API Server, Loading the DB and Adding the endpoints
 """
-import os
-from flask import Flask, request, jsonify, url_for
+import os, base64
+from flask import Flask, request, jsonify, url_for, Response
 from flask_migrate import Migrate
 from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
-from models import db
 from flask_jwt_simple import (
     JWTManager, jwt_required, create_jwt, get_jwt_identity
 )
-from models import Users
-from models import Packages
+from models import Users, Packages, db
+
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -21,6 +20,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
+
+# Buffers variables, to get data every 2 seconds from ScanStation
+img = "";
+Length = "";
+Width = "";
+Height = "";
+Weight = "";
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -138,6 +144,67 @@ def updateUserName():
     db.session.commit()
 
     return jsonify({"msg": "User name updated"}), 200
+
+@app.route('/deleteUser', methods=['DELETE'])
+@jwt_required
+def deleteUser():
+    # Access the identity of the current user with get_jwt_identity()
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    params = request.get_json()
+    name = params.get('name', None)
+    
+    if not name:
+        return jsonify({"msg": "Missing name parameter"}), 400
+    
+    user1 = Users.query.get(name)
+    if user1 is None:
+        raise APIException('User not found', status_code=404)
+    db.session.delete(user1)
+    db.session.commit()
+
+    return jsonify({"msg": "User deleted"}), 200
+
+
+@app.route('/api/test', methods=['POST'])
+def test():
+    global img, Length, Width, Height, Weight
+
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    params = request.get_json()
+    img = params.get('img', None)
+    Length = params.get('Length', None)
+    Width = params.get('Width', None)
+    Height = params.get('Height', None)
+    Weight = params.get('Weight', None)
+
+    fh = open("imageToSave.jpg", "wb")
+    fh.write(base64.b64decode(img))
+    fh.close()
+
+    print(Length,Width,Height,Weight)
+    # do some fancy processing here....
+
+    # build a response dict to send back to client
+    response = {'message': 'image received'}
+
+    return Response(response=response, status=200, mimetype="application/json")
+
+@app.route('/api/test/get', methods=['GET'])
+def test_get():
+
+    response_body = {
+        "img": img,
+        "Length": Length,
+        "Width": Width,
+        "Height": Height,
+        "Weight": Weight
+    }
+
+    return jsonify(response_body), 200
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
