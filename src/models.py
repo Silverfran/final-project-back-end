@@ -41,7 +41,7 @@ class Packages(db.Model):
     height = db.Column(db.Integer, nullable=False)
     width = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Integer, nullable=False)
-    tracking = db.Column(db.String(120), nullable=False)
+    tracking = db.Column(db.String(480), nullable=False)
 
     def __repr__(self):
         return '<Packages %r>' % self.tracking

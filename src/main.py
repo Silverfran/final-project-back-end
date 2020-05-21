@@ -206,6 +206,37 @@ def test_get():
 
     return jsonify(response_body), 200
 
+@app.route('/savePackage', methods=['POST'])
+@jwt_required
+def savePackage():
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    params = request.get_json()
+    img = params.get('img', None)
+    Length = params.get('Length', None)
+    Width = params.get('Width', None)
+    Height = params.get('Height', None)
+    Weight = params.get('Weight', None)
+
+    if not img:
+        return jsonify({"msg": "Missing img parameter"}), 400
+    if not Length:
+        return jsonify({"msg": "Missing Length parameter"}), 400
+    if not Width:
+        return jsonify({"msg": "Missing Width parameter"}), 400
+    if not Height:
+        return jsonify({"msg": "Missing Height parameter"}), 400
+    if not Weight:
+        return jsonify({"msg": "Missing Weight parameter"}), 400
+
+    pack = Packages(tracking="z00n", length=Length, height=Width, width=Height, weight=Weight)
+    db.session.add(pack)
+    db.session.commit()
+
+    return jsonify({"msg": "Package inserted"}), 200
+
+
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))
