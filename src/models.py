@@ -1,4 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime
 
 db = SQLAlchemy()
 
@@ -42,6 +43,9 @@ class Packages(db.Model):
     width = db.Column(db.Integer, nullable=False)
     weight = db.Column(db.Integer, nullable=False)
     tracking = db.Column(db.String(480), nullable=False)
+    url = db.Column(db.String(480), nullable=False)
+    ocr = db.Column(db.String(480), nullable=False)
+    created_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     def __repr__(self):
         return '<Packages %r>' % self.tracking
@@ -52,5 +56,8 @@ class Packages(db.Model):
             "height": self.height,
             "width": self.width,
             "weight": self.weight,
-            "tracking": self.tracking
+            "tracking": self.tracking,
+            "url": self.url,
+            "ocr": self.ocr,
+            "created_date": self.created_date
         }

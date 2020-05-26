@@ -11,6 +11,9 @@ from flask_jwt_simple import (
     JWTManager, jwt_required, create_jwt, get_jwt_identity
 )
 from models import Users, Packages, db
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 
 app = Flask(__name__)
@@ -105,7 +108,6 @@ def signup():
     ret = {'jwt': create_jwt(identity=username), 'lvl': 3}
     return jsonify(ret), 200
 
-
 # Protect a view with jwt_required, which requires a valid jwt
 # to be present in the headers.
 @app.route('/protected', methods=['GET'])
@@ -123,6 +125,14 @@ def userProtected():
     query_all = Users.query.all()
     all_Users = list(map(lambda x: x.serialize(), query_all))
     return jsonify(all_Users), 200
+
+@app.route('/packagesProtected', methods=['GET'])
+@jwt_required
+def packagesProtected():
+    # Access the identity of the current user with get_jwt_identity()
+    query_all = Packages.query.all()
+    all_Packages = list(map(lambda x: x.serialize(), query_all))
+    return jsonify(all_Packages), 200
 
 @app.route('/updateUserName', methods=['PUT'])
 @jwt_required
@@ -166,7 +176,6 @@ def deleteUser():
 
     return jsonify({"msg": "User deleted"}), 200
 
-
 @app.route('/api/test', methods=['POST'])
 def test():
     global img, Length, Width, Height, Weight
@@ -195,7 +204,6 @@ def test():
 
 @app.route('/api/test/get', methods=['GET'])
 def test_get():
-
     response_body = {
         "img": img,
         "Length": Length,
@@ -203,7 +211,6 @@ def test_get():
         "Height": Height,
         "Weight": Weight
     }
-
     return jsonify(response_body), 200
 
 @app.route('/savePackage', methods=['POST'])
@@ -230,7 +237,10 @@ def savePackage():
     if not Weight:
         return jsonify({"msg": "Missing Weight parameter"}), 400
 
-    pack = Packages(tracking="z00n", length=Length, height=Width, width=Height, weight=Weight)
+    result = cloudinary.uploader.upload("data:image/png;base64,"+img)
+    ocr = cloudinary.api.update(result['public_id'],  ocr = "adv_ocr")
+    # print(ocr['info']['ocr']['adv_ocr']['data'][0]['textAnnotations'][0]['description'])
+    pack = Packages(tracking= "z00123", url=result['url'], length=Length, height=Width, width=Height, weight=Weight, ocr=ocr['info']['ocr']['adv_ocr']['data'][0]['textAnnotations'][0]['description'])
     db.session.add(pack)
     db.session.commit()
 
