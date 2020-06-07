@@ -31,6 +31,20 @@ Width = "";
 Height = "";
 Weight = "";
 
+
+def fetchRates(we, le, wi, he):
+    import requests
+    url = "https://api.shipengine.com/v1/rates"
+    payload = "{\"rate_options\":{\"carrier_ids\":[\"se-244411\",\"se-244412\",\"se-244413\"]},\"shipment\":{\"validate_address\":\"no_validation\",\"ship_to\":{\"name\":\"SpaceX\",\"phone\":\"555-555-5555\",\"address_line1\":\"12301 Crenshaw Blvd\",\"city_locality\":\"Hawthorne\",\"state_province\":\"CA\",\"postal_code\":\"90250\",\"country_code\":\"US\",\"address_residential_indicator\":\"yes\"},\"ship_from\":{\"company_name\":\"Bayer Pharmaceutical\",\"name\":\"John Doe\",\"phone\":\"111-111-1111\",\"address_line1\":\"100 Bayer Boulevard\",\"city_locality\":\"Whippany\",\"state_province\":\"NJ\",\"postal_code\":\"07981\",\"country_code\":\"US\",\"address_residential_indicator\":\"no\"},\"packages\":[{\"weight\":{\"value\":"+we+",\"unit\":\"pound\"},\"dimensions\":{\"unit\":\"inch\",\"length\":"+le+",\"width\":"+wi+",\"height\":"+he+"}}]}}"
+    headers = {
+    'API-Key': 'TEST_KxRfGB638/YBSI+7RDvyQxkdpo1l5Tmckvy2oWc6UCA',
+    'Host': 'api.shipengine.com',
+    'Content-Length': '1322',
+    'Content-Type': 'application/json'
+    }
+    response = requests.request("POST", url, headers=headers, data = payload)
+    return response.text
+
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
 def handle_invalid_usage(error):
@@ -246,6 +260,21 @@ def savePackage():
 
     return jsonify({"msg": "Package inserted"}), 200
 
+@app.route('/getRates', methods=['POST'])
+@jwt_required
+def getRates():
+    if not request.is_json:
+        return jsonify({"msg": "Missing JSON in request"}), 400
+
+    params = request.get_json()
+    Length = params.get('Length', None)
+    Width = params.get('Width', None)
+    Height = params.get('Height', None)
+    Weight = params.get('Weight', None)
+
+    rates = fetchRates(Weight, Length, Width, Height)
+
+    return Response(response=rates, status=200, mimetype="application/json")
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
