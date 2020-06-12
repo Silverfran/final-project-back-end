@@ -30,6 +30,7 @@ Length = "";
 Width = "";
 Height = "";
 Weight = "";
+Tracking = "";
 
 
 def fetchRates(we, le, wi, he):
@@ -148,23 +149,37 @@ def packagesProtected():
     all_Packages = list(map(lambda x: x.serialize(), query_all))
     return jsonify(all_Packages), 200
 
-@app.route('/updateUserName', methods=['PUT'])
+@app.route('/updateUser', methods=['PUT'])
 @jwt_required
-def updateUserName():
+def updateUser():
     # Access the identity of the current user with get_jwt_identity()
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
 
     params = request.get_json()
-    oldUsername = params.get('olduser', None)
-    newUsername = params.get('newuser', None)
-    if not oldUsername:
-        return jsonify({"msg": "Missing olduser parameter"}), 400
-    if not newUsername:
-        return jsonify({"msg": "Missing newuser parameter"}), 400
+    userid = params.get('id', None)
+    username = params.get('username', None)
+    email = params.get('email', None)
+    password = params.get('password', None)
+    role_id = params.get('role_id', None)
+    if not userid:
+        return jsonify({"msg": "Missing userid parameter"}), 400
+    if not username:
+        return jsonify({"msg": "Missing username parameter"}), 400
+    if not email:
+        return jsonify({"msg": "Missing email parameter"}), 400
+    if not password:
+        return jsonify({"msg": "Missing password parameter"}), 400
+    if not role_id:
+        return jsonify({"msg": "Missing role_id parameter"}), 400
     
-    name_query = Users.query.filter_by(username=oldUsername).first()    
-    name_query.username = newUsername
+    name_query = Users.query.get(userid)
+    if user1 is None:
+        raise APIException('User not found', status_code=404) 
+    name_query.username = username
+    name_query.email = email
+    name_query.password = password
+    name_query.role_id = role_id
     db.session.commit()
 
     return jsonify({"msg": "User name updated"}), 200
@@ -223,12 +238,12 @@ def test_get():
         "Length": Length,
         "Width": Width,
         "Height": Height,
-        "Weight": Weight
+        "Weight": Weight,
+        "Tracking": Tracking
     }
     return jsonify(response_body), 200
 
 @app.route('/savePackage', methods=['POST'])
-@jwt_required
 def savePackage():
     if not request.is_json:
         return jsonify({"msg": "Missing JSON in request"}), 400
@@ -239,6 +254,7 @@ def savePackage():
     Width = params.get('Width', None)
     Height = params.get('Height', None)
     Weight = params.get('Weight', None)
+    Tracking = params.get('Tracking', None)
 
     if not img:
         return jsonify({"msg": "Missing img parameter"}), 400
@@ -250,11 +266,13 @@ def savePackage():
         return jsonify({"msg": "Missing Height parameter"}), 400
     if not Weight:
         return jsonify({"msg": "Missing Weight parameter"}), 400
+    if not Tracking:
+        return jsonify({"msg": "Missing Tracking parameter"}), 400
 
     result = cloudinary.uploader.upload("data:image/png;base64,"+img)
     ocr = cloudinary.api.update(result['public_id'],  ocr = "adv_ocr")
     # print(ocr['info']['ocr']['adv_ocr']['data'][0]['textAnnotations'][0]['description'])
-    pack = Packages(tracking= "z00123", url=result['url'], length=Length, height=Width, width=Height, weight=Weight, ocr=ocr['info']['ocr']['adv_ocr']['data'][0]['textAnnotations'][0]['description'])
+    pack = Packages(tracking=Tracking, url=result['url'], length=Length, height=Width, width=Height, weight=Weight, ocr=ocr['info']['ocr']['adv_ocr']['data'][0]['textAnnotations'][0]['description'])
     db.session.add(pack)
     db.session.commit()
 
