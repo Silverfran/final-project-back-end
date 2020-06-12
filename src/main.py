@@ -174,7 +174,7 @@ def updateUser():
         return jsonify({"msg": "Missing role_id parameter"}), 400
     
     name_query = Users.query.get(userid)
-    if user1 is None:
+    if name_query is None:
         raise APIException('User not found', status_code=404) 
     name_query.username = username
     name_query.email = email
